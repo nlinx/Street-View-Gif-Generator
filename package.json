@@ -1,0 +1,20 @@
+{
+  "name": "hyperlapse",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "angular": "^1.4.0",
+    "angular-resource": "^1.4.0",
+    "body-parser": "^1.12.4",
+    "express": "^4.12.4",
+    "gifshot": "^0.1.1",
+    "http": "0.0.0",
+    "request": "^2.57.0"
+  }
+}

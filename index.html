@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html ng-app="main">
+<head>
+  <title>Street View Hyperlapse</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="app.css" />
+  <script type="text/javascript" src="node_modules/angular/angular.min.js"></script>
+  <script type="text/javascript" src="node_modules/angular-resource/angular-resource.min.js"></script>
+  <script type="text/javascript" src="node_modules/gifshot/build/gifshot.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true"></script>
+  <script type="text/javascript" src="./app.js"></script>
+</head>
+<body ng-controller="streetImageCtrl">
+  <form>
+    <input type="text" ng-model="start" placeholder="Start"/>
+    <input type="text" ng-model="end" placeholder="End"/>
+    <input type="submit" ng-click="buildRoute('2540 College Ave Berkeley, CA', '387 Soda Hall, Berkeley, CA 94720')" value="Submit" />
+  </form>
+  {{images}}
+  <div id="gif"></div>
+</body>
+</html>
