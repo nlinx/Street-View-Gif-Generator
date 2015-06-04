@@ -3,7 +3,7 @@ angular.module("main", ["ngResource"])
   angular.extend($scope, factory);
 })
 .factory('factory', function($http, $resource, $q, $rootScope) {
-  var images = [];
+  // var images = [];
 
   // don't touch this
   // returns a promise with the origin and end latlngs and the api key
@@ -29,7 +29,6 @@ angular.module("main", ["ngResource"])
     var address = address || '611 Mission St, San Francisco, CA';
     var streetViewUrl = "http://maps.googleapis.com/maps/api/streetview?";
     return getLatLng(address).then(function(data) {
-      // console.log("data: ", data)
       var params = {
         width: 400,
         height: 400,
@@ -37,7 +36,6 @@ angular.module("main", ["ngResource"])
         lng: data.lng,
         key: data.key
       }
-      // console.log(params)
       streetViewUrl += "size=" + params.width + "x" + params.height;
       streetViewUrl += "&location=" + params.lat + "," + params.lng;
       streetViewUrl += "&key=" + params.key;
@@ -95,19 +93,21 @@ angular.module("main", ["ngResource"])
 }
 
 
-var buildStreetUrl = function(lat, lng, key) {
+var buildStreetUrl = function(lat, lng, heading, pitch, key) {
   var streetViewUrl = "http://maps.googleapis.com/maps/api/streetview?";
   var params = {
     width: 600,
     height: 600,
-    heading: 0, // determine heading;
+    heading: heading, // determine heading;
+    pitch: pitch,
     lat: lat,
     lng: lng,
     key: key
   }
   streetViewUrl += "size=" + params.width + "x" + params.height;
-  streetViewUrl += "&heading=" + params.heading;
   streetViewUrl += "&location=" + params.lat + "," + params.lng;
+  streetViewUrl += "&heading=" + params.heading;
+  streetViewUrl += "&pitch=" + params.pitch;
   streetViewUrl += "&key=" + params.key;
   return streetViewUrl;
 }
@@ -115,26 +115,71 @@ var buildStreetUrl = function(lat, lng, key) {
   // returns a promise route
   var buildRoute = function(origin, end) {
     var latLng = getLatLng(origin, end);
+    var images = [];
     return latLng.then(function(data) {
       var directionsService = new google.maps.DirectionsService();
+      var originLatLng = new google.maps.LatLng(data.origin.lat, data.origin.lng);
+      var endLatLng = new google.maps.LatLng(data.end.lat, data.end.lng);
+      var key = data.key;
       return directionsService.route({
-        origin: new google.maps.LatLng(data.origin.lat, data.origin.lng),
-        destination: new google.maps.LatLng(data.end.lat, data.end.lng),
+        origin: originLatLng,
+        destination: endLatLng,
         travelMode: google.maps.TravelMode.DRIVING
       }, function(response, status) {
         if (status == google.maps.DirectionsStatus.OK) {
           var path = response.routes[0].overview_path;
           for (var i = 0; i < path.length; i++) {
-            images.push(buildStreetUrl(path[i].A, path[i].F, data.key));
-            var image = images[i]
-            animatedImage = document.createElement('img');
-            animatedImage.src = image;
-            document.getElementById("gif").appendChild(animatedImage);
+            var lat = path[i].A;
+            var lng = path[i].F;
+            var location = new google.maps.LatLng(lat, lng);
+            getPanoramaInfo(location, i).then(function(data) {
+              var heading = data.heading;
+              var pitch = data.pitch;
+              var image = buildStreetUrl(data.location.A, data.location.F, heading, pitch, key);
+              images.push({image: image, index: data.index});
+              images.sort(function(a, b) {
+                return a.index - b.index;
+              });
+              return images
+              // animatedImage = document.createElement('img');
+              // animatedImage.src = image;
+              // document.getElementById("gif").appendChild(animatedImage);
+            }).then(function(data) {
+              if (data.length === path.length - 1) {
+                for (var i = 0; i < data.length; i++) {
+                  console.log(data[i]);
+                  var animatedImage = document.createElement('img');
+                  animatedImage.src = data[i].image;
+                  document.getElementById("gif").appendChild(animatedImage);
+                }
+              }
+            });
           }
-            // build Gif out of images array and append to "#gif"
-        }
+          }
+        });
+    });
+  }
+
+  // gets panorama info so I don't have to calculate the heading and pitch
+  var getPanoramaInfo = function(location, index) {
+    var deferred = $q.defer();
+    var streetViewService = new google.maps.StreetViewService();
+    streetViewService.getPanoramaByLocation(location, 50, function(result, status) {
+      if (google.maps.StreetViewStatus.OK !== status) {
+        deferred.reject({
+          error: new Error('Unable to find location panorama'),
+          status: status
+        });
+        return;
+      }
+      deferred.resolve({
+        location: result.location.latLng,
+        heading: result.tiles.centerHeading,
+        pitch: result.tiles.originPitch,
+        index: index
       });
     });
+    return deferred.promise;
   }
 
   var test = function(origin ,end) {
@@ -142,12 +187,13 @@ var buildStreetUrl = function(lat, lng, key) {
   }
 
   return {
-    images: images,
+    // images: images,
     buildGif: buildGif,
     buildStreetUrl: buildStreetUrl,
     buildStreetImage: buildStreetImage,
     getLatLng: getLatLng,
     buildRoute: buildRoute,
+    getPanoramaInfo: getPanoramaInfo,
     test: test
   }
 })
