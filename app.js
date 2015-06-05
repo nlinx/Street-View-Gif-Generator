@@ -80,12 +80,25 @@ angular.module("main", ["ngResource"])
 
   // don't touch this
   var buildGif = function(images) {
-    for (var i = 0; i < images.length; i++) {
-      var image = images[i]
-      animatedImage = document.createElement('img');
-      animatedImage.src = image;
-      document.getElementById("gif").appendChild(animatedImage);
+    gifshot.createGIF({
+      'images': images
+    }, function(obj) {
+      console.log("hi");
+      console.log(obj);
+    if (!obj.error) {
+        var image = obj.image;
+        animatedImage = document.createElement('img');
+        animatedImage.src = image;
+        console.log(animatedImage);
+        document.getElementById("gif").appendChild(animatedImage);
     }
+});
+    // for (var i = 0; i < images.length; i++) {
+    //   var image = images[i]
+    //   animatedImage = document.createElement('img');
+    //   animatedImage.src = image;
+    //   document.getElementById("gif").appendChild(animatedImage);
+    // }
       // gifshot.createGif({'images': images}, function(obj) {
       //   if(!obj.error) {
       //   }
@@ -140,18 +153,23 @@ var buildStreetUrl = function(lat, lng, heading, pitch, key) {
               images.sort(function(a, b) {
                 return a.index - b.index;
               });
-              return images
+              return images;
               // animatedImage = document.createElement('img');
               // animatedImage.src = image;
               // document.getElementById("gif").appendChild(animatedImage);
             }).then(function(data) {
               if (data.length === path.length - 1) {
+                var gifImages = [];
                 for (var i = 0; i < data.length; i++) {
-                  console.log(data[i]);
-                  var animatedImage = document.createElement('img');
-                  animatedImage.src = data[i].image;
-                  document.getElementById("gif").appendChild(animatedImage);
+                  gifImages.push(data[i].image);
                 }
+                buildGif(gifImages);
+                // make gif out of data array;
+                // for (var i = 0; i < data.length; i++) {
+                //   var animatedImage = document.createElement('img');
+                //   animatedImage.src = data[i].image;
+                //   document.getElementById("gif").appendChild(animatedImage);
+                // }
               }
             });
           }
