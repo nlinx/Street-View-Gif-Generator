@@ -79,38 +79,32 @@ angular.module("main", ["ngResource"])
   }
 
   // don't touch this
-  var buildGif = function(images) {
+  var buildGif = function(images, numFrames) {
     gifshot.createGIF({
-      'images': images
+      'images': images,
+      'gifWidth': 600,
+      'gifHeight': 600,
+      'numFrames': numFrames
     }, function(obj) {
-      console.log("hi");
       console.log(obj);
-    if (!obj.error) {
+      if (!obj.error) {
         var image = obj.image;
         animatedImage = document.createElement('img');
         animatedImage.src = image;
+        animatedImage.id = "gif"
         console.log(animatedImage);
-        document.getElementById("gif").appendChild(animatedImage);
-    }
-});
-    // for (var i = 0; i < images.length; i++) {
-    //   var image = images[i]
-    //   animatedImage = document.createElement('img');
-    //   animatedImage.src = image;
-    //   document.getElementById("gif").appendChild(animatedImage);
-    // }
-      // gifshot.createGif({'images': images}, function(obj) {
-      //   if(!obj.error) {
-      //   }
-      // });
-}
+        var gifWrapper = document.getElementById("gifWrapper")
+        gifWrapper.replaceChild(animatedImage, gifWrapper.childNodes[0]);
+      }
+    });
+  }
 
 
-var buildStreetUrl = function(lat, lng, heading, pitch, key) {
-  var streetViewUrl = "http://maps.googleapis.com/maps/api/streetview?";
-  var params = {
-    width: 600,
-    height: 600,
+  var buildStreetUrl = function(lat, lng, heading, pitch, key) {
+    var streetViewUrl = "http://maps.googleapis.com/maps/api/streetview?";
+    var params = {
+      width: 600,
+      height: 600,
     heading: heading, // determine heading;
     pitch: pitch,
     lat: lat,
@@ -154,29 +148,20 @@ var buildStreetUrl = function(lat, lng, heading, pitch, key) {
                 return a.index - b.index;
               });
               return images;
-              // animatedImage = document.createElement('img');
-              // animatedImage.src = image;
-              // document.getElementById("gif").appendChild(animatedImage);
             }).then(function(data) {
-              if (data.length === path.length - 1) {
-                var gifImages = [];
-                for (var i = 0; i < data.length; i++) {
-                  gifImages.push(data[i].image);
-                }
-                buildGif(gifImages);
-                // make gif out of data array;
-                // for (var i = 0; i < data.length; i++) {
-                //   var animatedImage = document.createElement('img');
-                //   animatedImage.src = data[i].image;
-                //   document.getElementById("gif").appendChild(animatedImage);
-                // }
+              var gifImages = [];
+              for (var i = 0; i < data.length; i++) {
+                gifImages.push(data[i].image);
               }
+              var numFrames = data.length * 150;
+              console.log("about to start building gif");
+              buildGif(gifImages, numFrames);
             });
           }
-          }
-        });
-    });
-  }
+        }
+      });
+});
+}
 
   // gets panorama info so I don't have to calculate the heading and pitch
   var getPanoramaInfo = function(location, index) {
