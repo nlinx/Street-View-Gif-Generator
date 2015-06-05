@@ -42,18 +42,18 @@ angular.module("main", ["ngResource"])
 
   // builds the gif and appends it onto the page
   var buildGif = function(images) {
+    console.log(images)
     gifshot.createGIF({
       'images': images,
       'gifWidth': 600,
       'gifHeight': 600
     }, function(obj) {
-      console.log(obj);
       if (!obj.error) {
         var image = obj.image;
         animatedImage = document.createElement('img');
         animatedImage.src = image;
         animatedImage.id = "gif"
-        console.log(animatedImage);
+        console.log("about to start building gif");
         var gifWrapper = document.getElementById("gifWrapper")
         gifWrapper.replaceChild(animatedImage, gifWrapper.childNodes[0]);
       }
@@ -66,24 +66,37 @@ angular.module("main", ["ngResource"])
     var params = {
       width: 600,
       height: 600,
-    heading: heading,
-    pitch: pitch,
-    lat: lat,
-    lng: lng,
-    key: key
+      heading: heading,
+      pitch: pitch,
+      lat: lat,
+      lng: lng,
+      key: key
+    }
+    streetViewUrl += "size=" + params.width + "x" + params.height;
+    streetViewUrl += "&location=" + params.lat + "," + params.lng;
+    streetViewUrl += "&heading=" + params.heading;
+    streetViewUrl += "&pitch=" + params.pitch;
+    streetViewUrl += "&key=" + params.key;
+    return streetViewUrl;
   }
-  streetViewUrl += "size=" + params.width + "x" + params.height;
-  streetViewUrl += "&location=" + params.lat + "," + params.lng;
-  streetViewUrl += "&heading=" + params.heading;
-  streetViewUrl += "&pitch=" + params.pitch;
-  streetViewUrl += "&key=" + params.key;
-  return streetViewUrl;
-}
+
+  var runOnce = function(func) {
+    var alreadyCalled = false;
+    var result;
+    return function() {
+      if(!alreadyCalled) {
+        result = func.apply(this, arguments);
+        alreadyCalled = true;
+      }
+      return result;
+    }
+  }
 
   // returns a promise route
   var buildRouteGif = function(origin, end) {
     var latLng = getLatLng(origin, end);
     var images = [];
+    var gifFunction = runOnce(buildGif);
     return latLng.then(function(data) {
       var directionsService = new google.maps.DirectionsService();
       var originLatLng = new google.maps.LatLng(data.origin.lat, data.origin.lng);
@@ -111,20 +124,19 @@ angular.module("main", ["ngResource"])
               return images;
             }).then(function(data) {
               var gifImages = [];
-              var frameMultiplier = 3;
+              var frameMultiplier = 4;
               for (var i = 0; i < data.length; i++) {
                 for (var j = 0; j < frameMultiplier; j++) {
                   gifImages.push(data[i].image);
                 }
               }
-              console.log("about to start building gif");
-              buildGif(gifImages);
+              gifFunction(gifImages);
             });
           }
         }
       });
-});
-}
+  });
+  }
 
   // gets panorama info so I don't have to calculate the heading and pitch
   // returns a promise with the heading, pitch, index, and location
@@ -150,7 +162,6 @@ angular.module("main", ["ngResource"])
   }
 
   return {
-    // images: images,
     buildGif: buildGif,
     buildStreetUrl: buildStreetUrl,
     getLatLng: getLatLng,
