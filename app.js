@@ -3,9 +3,6 @@ angular.module("main", ["ngResource"])
   angular.extend($scope, factory);
 })
 .factory('factory', function($http, $resource, $q, $rootScope) {
-  // var images = [];
-
-  // don't touch this
   // returns a promise with the origin and end latlngs and the api key
   var getLatLng = function(origin, end) {
     return $http({
@@ -43,48 +40,12 @@ angular.module("main", ["ngResource"])
     })
   }
 
-  // var buildRoute = function(origin, end) {
-  //   var LatLng = getLatLng(origin, end);
-  //   return $http({
-  //     method: 'GET',
-  //     url: '/api/route',
-  //     params: {
-  //       data: latLng
-  //     }
-  //   })
-  //   .then(function(res) {
-  //     return res.data;
-  //   }, function(error) {
-  //     console.log('error in buildRoute');
-  //   })
-  // }
-
-  // do i even need this? won't the url be enough?
-  // intakes an address string
-  // pushes image html elements into the images array
-  var buildStreetImage = function(address) {
-    var streetViewUrl = buildStreetUrl(address);
-    return streetViewUrl.then(function(url) {
-      return $http({
-        method: 'GET',
-        url: '/api/images',
-        params: {url: url}
-      })
-      .then(function(res) {
-        return res.data
-      }, function(error) {
-        console.log('error in buildStreetImage');
-      })
-    })
-  }
-
-  // don't touch this
-  var buildGif = function(images, numFrames) {
+  // builds the gif and appends it onto the page
+  var buildGif = function(images) {
     gifshot.createGIF({
       'images': images,
       'gifWidth': 600,
-      'gifHeight': 600,
-      'numFrames': numFrames
+      'gifHeight': 600
     }, function(obj) {
       console.log(obj);
       if (!obj.error) {
@@ -99,13 +60,13 @@ angular.module("main", ["ngResource"])
     });
   }
 
-
+  // builds the street view image url; returns a string
   var buildStreetUrl = function(lat, lng, heading, pitch, key) {
     var streetViewUrl = "http://maps.googleapis.com/maps/api/streetview?";
     var params = {
       width: 600,
       height: 600,
-    heading: heading, // determine heading;
+    heading: heading,
     pitch: pitch,
     lat: lat,
     lng: lng,
@@ -120,7 +81,7 @@ angular.module("main", ["ngResource"])
 }
 
   // returns a promise route
-  var buildRoute = function(origin, end) {
+  var buildRouteGif = function(origin, end) {
     var latLng = getLatLng(origin, end);
     var images = [];
     return latLng.then(function(data) {
@@ -150,12 +111,14 @@ angular.module("main", ["ngResource"])
               return images;
             }).then(function(data) {
               var gifImages = [];
+              var frameMultiplier = 3;
               for (var i = 0; i < data.length; i++) {
-                gifImages.push(data[i].image);
+                for (var j = 0; j < frameMultiplier; j++) {
+                  gifImages.push(data[i].image);
+                }
               }
-              var numFrames = data.length * 150;
               console.log("about to start building gif");
-              buildGif(gifImages, numFrames);
+              buildGif(gifImages);
             });
           }
         }
@@ -164,6 +127,7 @@ angular.module("main", ["ngResource"])
 }
 
   // gets panorama info so I don't have to calculate the heading and pitch
+  // returns a promise with the heading, pitch, index, and location
   var getPanoramaInfo = function(location, index) {
     var deferred = $q.defer();
     var streetViewService = new google.maps.StreetViewService();
@@ -185,19 +149,13 @@ angular.module("main", ["ngResource"])
     return deferred.promise;
   }
 
-  var test = function(origin ,end) {
-    var holder = buildRoute(origin, end);
-  }
-
   return {
     // images: images,
     buildGif: buildGif,
     buildStreetUrl: buildStreetUrl,
-    buildStreetImage: buildStreetImage,
     getLatLng: getLatLng,
-    buildRoute: buildRoute,
+    buildRouteGif: buildRouteGif,
     getPanoramaInfo: getPanoramaInfo,
-    test: test
   }
 })
 
