@@ -16,8 +16,8 @@ var port = process.env.PORT || 3000;
 // get geocode latlong data
 app.get('/api/latLng', function(req, res) {
   var results = {};
-  var origin = req.query.origin || '611 Mission St, San Francisco, CA';
-  var end = req.query.end || '615 Mission St, San Francisco, CA';
+  var origin = req.query.origin;
+  var end = req.query.end;
   origin = origin.split(" ").join("+");
   end = end.split(" ").join("+");
   var startUrl = 'https://maps.googleapis.com/maps/api/geocode/json?address=' + origin + '&key=' + secret.apiKey;

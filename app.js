@@ -20,44 +20,35 @@ angular.module("main", ["ngResource"])
     })
   }
 
-  // intakes an address string;
-  // returns a streetViewURL string promise
-  var buildStreetUrl = function(address) {
-    var address = address || '611 Mission St, San Francisco, CA';
-    var streetViewUrl = "http://maps.googleapis.com/maps/api/streetview?";
-    return getLatLng(address).then(function(data) {
-      var params = {
-        width: 400,
-        height: 400,
-        lat: data.lat,
-        lng: data.lng,
-        key: data.key
-      }
-      streetViewUrl += "size=" + params.width + "x" + params.height;
-      streetViewUrl += "&location=" + params.lat + "," + params.lng;
-      streetViewUrl += "&key=" + params.key;
-      return streetViewUrl;
-    })
-  }
-
   // builds the gif and appends it onto the page
   var buildGif = function(images) {
-    console.log(images)
-    gifshot.createGIF({
-      'images': images,
-      'gifWidth': 600,
-      'gifHeight': 600
-    }, function(obj) {
-      if (!obj.error) {
-        var image = obj.image;
-        animatedImage = document.createElement('img');
-        animatedImage.src = image;
-        animatedImage.id = "gif"
-        console.log("about to start building gif");
-        var gifWrapper = document.getElementById("gifWrapper")
-        gifWrapper.replaceChild(animatedImage, gifWrapper.childNodes[0]);
+    console.log("just got into the buildGif function");
+    var gifWrapper = document.getElementById("gifWrapper");
+    var index = 0;
+    setInterval(function() { // need to figure out how to deal with submitting twice
+      if (index === images.length) {
+        index = 0;
       }
-    });
+      var image = document.getElementById("gif")
+      image.src = images[index].image;
+      console.log(index)
+      index++;
+    }, 200)
+    // gifshot.createGIF({
+    //   'images': images,
+    //   'gifWidth': 600,
+    //   'gifHeight': 600,
+    //   'numWorkers': 25
+    // }, function(obj) {
+    //   if (!obj.error) {
+        // animatedImage = document.createElement('img');
+        // animatedImage.src = obj.image;
+        // animatedImage.id = "gif"
+        // var gifWrapper = document.getElementById("gifWrapper")
+        // console.log("about to append gif");
+        // gifWrapper.replaceChild(animatedImage, gifWrapper.childNodes[0]);
+    //   }
+    // });
   }
 
   // builds the street view image url; returns a string
@@ -94,45 +85,51 @@ angular.module("main", ["ngResource"])
 
   // returns a promise route
   var buildRouteGif = function(origin, end) {
+    origin = origin || '2540 College Ave Berkeley, CA 94704';
+    end = end || '1512 Shattuck Ave Berkeley, CA 94709';
     var latLng = getLatLng(origin, end);
     var images = [];
+    var scalar = 3;
     var gifFunction = runOnce(buildGif);
-    return latLng.then(function(data) {
+    latLng.then(function(data) {
       var directionsService = new google.maps.DirectionsService();
       var originLatLng = new google.maps.LatLng(data.origin.lat, data.origin.lng);
       var endLatLng = new google.maps.LatLng(data.end.lat, data.end.lng);
       var key = data.key;
-      return directionsService.route({
+      directionsService.route({
         origin: originLatLng,
         destination: endLatLng,
         travelMode: google.maps.TravelMode.DRIVING
       }, function(response, status) {
         if (status == google.maps.DirectionsStatus.OK) {
           var path = response.routes[0].overview_path;
-          for (var i = 0; i < path.length; i++) {
-            var lat = path[i].A;
-            var lng = path[i].F;
-            var location = new google.maps.LatLng(lat, lng);
-            getPanoramaInfo(location, i).then(function(data) {
+          path.forEach(function(val, index) {
+            getPanoramaInfo(val, index)
+            .then(function(data) {
               var heading = data.heading;
               var pitch = data.pitch;
               var image = buildStreetUrl(data.location.A, data.location.F, heading, pitch, key);
-              images.push({image: image, index: data.index});
-              images.sort(function(a, b) {
-                return a.index - b.index;
-              });
-              return images;
-            }).then(function(data) {
-              var gifImages = [];
-              var frameMultiplier = 4;
-              for (var i = 0; i < data.length; i++) {
-                for (var j = 0; j < frameMultiplier; j++) {
-                  gifImages.push(data[i].image);
-                }
+              for (var i = 0; i < scalar; i++) {
+                images.push({image: image, index: index});
               }
-              gifFunction(gifImages);
+              if (images.length === path.length * scalar) {
+                console.log("about to run the gif making function", images.length)
+                images.sort(function(a,b) {
+                  return a.index - b.index;
+                })
+                // var img = document.getElementById("gif")
+                // if (img.src) {
+                //   newImage = document.createElement('img');
+                //   newImage.id = "gif"
+                //   var gifWrapper = document.getElementById("gifWrapper")
+                //   console.log("about to append gif");
+                //   gifWrapper.replaceChild(newImage, gifWrapper.childNodes[0]);
+                // }
+                gifFunction(images);
+              }
+              return images;
             });
-          }
+          })
         }
       });
   });
@@ -143,7 +140,7 @@ angular.module("main", ["ngResource"])
   var getPanoramaInfo = function(location, index) {
     var deferred = $q.defer();
     var streetViewService = new google.maps.StreetViewService();
-    streetViewService.getPanoramaByLocation(location, 50, function(result, status) {
+    streetViewService.getPanoramaByLocation(location, 25, function(result, status) {
       if (google.maps.StreetViewStatus.OK !== status) {
         deferred.reject({
           error: new Error('Unable to find location panorama'),
